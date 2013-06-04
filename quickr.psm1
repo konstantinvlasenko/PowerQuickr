@@ -29,6 +29,20 @@ function Set-Quickr {
 }
 
 function New-QuickrPlace {
+  <#
+  .SYNOPSIS
+  Creates Quickr place
+  .DESCRIPTION
+  Creates Quickr place (http://wiki.urspringer.de/doku.php/qfaq/tutorials_howtos_etc/how_to_create_a_quickr_place_automatically)
+  .EXAMPLE
+  New-QuickrPlace TestPlace "John Doe" passw0rd
+  .PARAMETER place
+  The name of the Place.
+  .PARAMETER owner
+  The Place's owner.
+  .PARAMETER owner_password
+  The Place's owner password.
+  #>
   param(
     [parameter(Mandatory = $true)]
     [string] $place,
