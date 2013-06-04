@@ -1,4 +1,4 @@
-<entry xml:base="$base$/dm/atom/library/%5B@P$place$/@RMain.nsf%5D/feed" xmlns="http://www.w3.org/2005/Atom">
+<entry xml:base="$url" xmlns="http://www.w3.org/2005/Atom">
   <category term="folder" scheme="tag:ibm.com,2006:td/type" label="folder"/>
   <title type="text">$name$</title>
 </entry>

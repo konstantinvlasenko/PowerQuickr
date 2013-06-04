@@ -56,20 +56,63 @@ function New-QuickrPlace {
   Invoke-WebRequest -Uri $url -Headers $PQ_HEADERS
 }
 
-
-function New-QuickrFolder {
+function New-QuickrRootFolder {
   param(
     [parameter(Mandatory = $true)]
     [string] $place,
     [parameter(Mandatory = $true)]
     [string] $name
   )
-  $template = [string](Get-Content "$PQ_DIR\xml\create_folder.xml")
-  $body = Merge-Tokens $template @{ base = $PQ_BASE; place = $place;  name = $name}
   $url = "$PQ_BASE/dm/atom/library/%5B@P$place/@RMain.nsf%5D/feed"
-  Invoke-WebRequest -Uri $url -Method Post -Body $body -ContentType "application/atom+xml" -Headers $PQ_HEADERS
+  $template = [string](Get-Content "$PQ_DIR\xml\create_folder.xml")
+  $body = Merge-Tokens $template @{ url = $url; name = $name}
+  
+  (Invoke-WebRequest -Uri $url -Method Post -Body $body -ContentType "application/atom+xml" -Headers $PQ_HEADERS).Content
+}
+
+function New-QuickrFolder {
+  param(
+    [parameter(Mandatory = $true, ValueFromPipeline=$true)]
+    [xml[]] $folders,
+    [parameter(Mandatory = $true)]
+    [string] $name
+  )
+  BEGIN{ 
+    $template = [string](Get-Content "$PQ_DIR\xml\create_folder.xml")
+  }
+  PROCESS {
+    foreach ($f in $folders) {
+      $url = "$PQ_BASE$($f.entry.content.src)"
+      $body = Merge-Tokens $template @{ base = $url; name = $name}
+      (Invoke-WebRequest -Uri $url -Method Post -Body $body -ContentType "application/atom+xml" -Headers $PQ_HEADERS).Content
+    }
+  }
+}
+
+
+function New-QuickrDocument {
+  param(
+    [parameter(Mandatory = $true, ValueFromPipeline=$true)]
+    [xml[]] $folders,
+    [parameter(Mandatory = $false)]
+    [string] $name = "PowerQuickr.txt",
+    [parameter(Mandatory = $false)]
+    [Byte[]] $content = [system.Text.Encoding]::UTF8.GetBytes('Hello PowerQuickr!')
+    
+  )
+  BEGIN{ 
+    $header = @{Slug = $name}
+  }
+  PROCESS {
+    foreach ($f in $folders) {
+      $url = "$PQ_BASE$($f.entry.content.src)"
+      (Invoke-WebRequest -Uri $url -Method Post -Body $content -ContentType "application/atom+xml" -Headers ($PQ_HEADERS + $header)).Content
+    }
+  }
 }
 
 export-modulemember -function Set-Quickr
 export-modulemember -function New-QuickrPlace
+export-modulemember -function New-QuickrRootFolder
 export-modulemember -function New-QuickrFolder
+export-modulemember -function New-QuickrDocument
