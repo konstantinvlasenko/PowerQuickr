@@ -28,6 +28,21 @@ function Set-Quickr {
   Set-Variable -Name "PQ_HEADERS" -Value @{Authorization = "Basic $encoded"} -Scope "Global"
 }
 
+function New-QuickrPlace {
+  param(
+    [parameter(Mandatory = $true)]
+    [string] $place,
+    [parameter(Mandatory = $true)]
+    [string] $owner,
+    [parameter(Mandatory = $true)]
+    [string] $owner_password
+  )
+  
+  $url = "$PQ_BASE/LotusQuickr/LotusQuickr/CreateHaiku.nsf?OpenDatabase&PresetFields=h_SetEditCurrentScene;h_CreateManager,h_EditAction;h_Next,h_SetCommand;h_CreateOffice,h_PlaceTypeName;,h_Name;$place,h_UserName;$owner,h_SetPassword;$owner_password,h_EmailAddress;,h_SetReturnUrl;$PQ_BASE/$place,h_OwnerAuth;h_External"
+  Invoke-WebRequest -Uri $url -Headers $PQ_HEADERS
+}
+
+
 function New-QuickrFolder {
   param(
     [parameter(Mandatory = $true)]
@@ -35,11 +50,6 @@ function New-QuickrFolder {
     [parameter(Mandatory = $true)]
     [string] $name
   )
-  $PQ_BASE | out-default
-  if($PQ_BASE -eq $null) {
-    "Call Set-Quickr first!"
-    return
-  }
   $template = [string](Get-Content "$PQ_DIR\xml\create_folder.xml")
   $body = Merge-Tokens $template @{ base = $PQ_BASE; place = $place;  name = $name}
   $url = "$PQ_BASE/dm/atom/library/%5B@P$place/@RMain.nsf%5D/feed"
