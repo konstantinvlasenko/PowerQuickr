@@ -57,4 +57,5 @@ function New-QuickrFolder {
 }
 
 export-modulemember -function Set-Quickr
+export-modulemember -function New-QuickrPlace
 export-modulemember -function New-QuickrFolder
