@@ -124,7 +124,7 @@ function New-QuickrDocument {
   )
   $header = @{Slug = $name}
   $url = "$PQ_BASE$($parent.url)"
-  (Invoke-WebRequest -Uri $url -Method Post -Body $content -ContentType "application/atom+xml" -Headers ($PQ_HEADERS + $header)).Content
+  (Invoke-WebRequest -Uri $url -Method Post -Body $content -ContentType "application/atom+xml" -Headers ($PQ_HEADERS + $header)).StatusCode
 }
 
 export-modulemember -function Set-Quickr
