@@ -45,6 +45,8 @@ function Set-Quickr {
   )
   Set-Variable -Name "PQ_BASE" -Value "http://$server" -Scope "Global"
   Set-Variable -Name "PQ_LIBRARIES" -Value "http://$server/dm/atom/libraries/feed" -Scope "Global"
+  Set-Variable -Name "PQ_ADMIN" -Value $user -Scope "Global"
+  Set-Variable -Name "PQ_ADMIN_PASSWORD" -Value $password -Scope "Global"
   $encoded = [System.Convert]::ToBase64String([System.Text.Encoding]::UTF8.GetBytes("$user`:$password"))
   $PQ_HEADERS = @{Authorization = "Basic $encoded"}
   Set-Variable -Name "PQ_HEADERS" -Value @{Authorization = "Basic $encoded"} -Scope "Global"
@@ -68,10 +70,8 @@ function New-QuickrPlace {
   param(
     [parameter(Mandatory = $true)]
     [string] $place,
-    [parameter(Mandatory = $true)]
-    [string] $owner,
-    [parameter(Mandatory = $true)]
-    [string] $owner_password
+    [string] $owner = $PQ_ADMIN,
+    [string] $owner_password = $PQ_ADMIN_PASSWORD
   )
   
   $url = "$PQ_BASE/LotusQuickr/LotusQuickr/CreateHaiku.nsf?OpenDatabase&PresetFields=h_SetEditCurrentScene;h_CreateManager,h_EditAction;h_Next,h_SetCommand;h_CreateOffice,h_PlaceTypeName;,h_Name;$place,h_UserName;$owner,h_SetPassword;$owner_password,h_EmailAddress;,h_SetReturnUrl;$PQ_BASE/$place,h_OwnerAuth;h_External"
