@@ -18,12 +18,20 @@ function Convert-EntriesToObject {
   }
   PROCESS {
     foreach ($entry in $input) {
-      $Object | add-member Noteproperty $entry.title.'#text' $entry.content.src
+      $Object | add-member Noteproperty $entry.title.'#text' (Convert-EntryToHash $entry)
     }
   }
   END{
     $Object
   }
+}
+
+function Convert-EntryToHash {
+  param(
+    [parameter(Mandatory = $true, ValueFromPipeline=$true)]
+    [System.Xml.XmlElement] $entry
+  )
+  @{url = $entry.content.src}
 }
 
 function Set-Quickr {
@@ -76,57 +84,50 @@ function New-QuickrPlace {
   }
 }
 
-function Get-QuickrLibraries {
-  $url = "$PQ_BASE/dm/atom/libraries/feed"
-  ([xml](Invoke-WebRequest -Uri $url -Headers $PQ_HEADERS).Content).feed.entry | Convert-EntriesToObject
-}
-
 function Get-QuickrPlace {
   param(
     [parameter(Mandatory = $true)]
     [string] $place
   )
-  $url = iex "(Get-QuickrLibraries).$place"
+  $url = "$PQ_BASE/dm/atom/library/%5B@P$place/@RMain.nsf%5D/feed"
   ([xml](Invoke-WebRequest -Uri $url -Headers $PQ_HEADERS).Content).feed.entry | Convert-EntriesToObject
 }
 
 function New-QuickrFolder {
   param(
     [parameter(Mandatory = $true)]
-    [string] $parentUrl,
-    [parameter(Mandatory = $true)]
-    [string] $name
+    [string] $name,
+    [parameter(Mandatory = $true, ValueFromPipeline=$true)]
+    [hashtable[]] $parents
   )
-  $url = "$PQ_BASE$parentUrl"
-  $template = [string](Get-Content "$PQ_DIR\xml\create_folder.xml")
-  $body = Merge-Tokens $template @{ base = $url; name = $name}
-  ([xml](Invoke-WebRequest -Uri $url -Method Post -Body $body -ContentType "application/atom+xml" -Headers $PQ_HEADERS).Content).entry | Convert-EntriesToObject
+  BEGIN {
+    $template = [string](Get-Content "$PQ_DIR\xml\create_folder.xml")
+  }
+  PROCESS {
+    foreach($p in $parents) {
+      $url = "$PQ_BASE$($p.url)"
+      $body = Merge-Tokens $template @{ base = $url; name = $name}
+      ([xml](Invoke-WebRequest -Uri $url -Method Post -Body $body -ContentType "application/atom+xml" -Headers $PQ_HEADERS).Content).entry | Convert-EntryToHash
+    }
+  }
 }
-
 
 function New-QuickrDocument {
   param(
     [parameter(Mandatory = $true, ValueFromPipeline=$true)]
-    [xml[]] $folders,
+    [hashtable] $parent,
     [parameter(Mandatory = $false)]
     [string] $name = "PowerQuickr.txt",
     [parameter(Mandatory = $false)]
     [Byte[]] $content = [system.Text.Encoding]::UTF8.GetBytes('Hello PowerQuickr!')
     
   )
-  BEGIN{ 
-    $header = @{Slug = $name}
-  }
-  PROCESS {
-    foreach ($f in $folders) {
-      $url = "$PQ_BASE$($f.entry.content.src)"
-      (Invoke-WebRequest -Uri $url -Method Post -Body $content -ContentType "application/atom+xml" -Headers ($PQ_HEADERS + $header)).Content
-    }
-  }
+  $header = @{Slug = $name}
+  $url = "$PQ_BASE$($parent.url)"
+  (Invoke-WebRequest -Uri $url -Method Post -Body $content -ContentType "application/atom+xml" -Headers ($PQ_HEADERS + $header)).Content
 }
 
 export-modulemember -function Set-Quickr
-export-modulemember -function Get-QuickrLibraries
 export-modulemember -function Get-QuickrPlace
 export-modulemember -function New-QuickrPlace
 export-modulemember -function New-QuickrRootFolder
