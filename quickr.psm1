@@ -116,9 +116,7 @@ function New-QuickrDocument {
   param(
     [parameter(Mandatory = $true, ValueFromPipeline=$true)]
     [hashtable] $parent,
-    [parameter(Mandatory = $false)]
     [string] $name = "PowerQuickr.txt",
-    [parameter(Mandatory = $false)]
     [Byte[]] $content = [system.Text.Encoding]::UTF8.GetBytes('Hello PowerQuickr!')
     
   )
