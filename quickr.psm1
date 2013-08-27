@@ -105,7 +105,8 @@ function New-QuickrFolder {
   }
   PROCESS {
     foreach($p in $parents) {
-      $url = "$PQ_BASE$($p.url)"
+      $url = "$PQ_BASE/$($p.url)"
+	  $url | out-default
       $body = Merge-Tokens $template @{ base = $url; name = $name}
       ([xml](Invoke-WebRequest -Uri $url -Method Post -Body $body -ContentType "application/atom+xml" -Headers $PQ_HEADERS).Content).entry | Convert-EntryToHash
     }
