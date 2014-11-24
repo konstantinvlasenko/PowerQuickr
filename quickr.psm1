@@ -49,7 +49,7 @@ function Set-Quickr {
   Set-Variable -Name "PQ_ADMIN_PASSWORD" -Value $password -Scope "Global"
   $encoded = [System.Convert]::ToBase64String([System.Text.Encoding]::UTF8.GetBytes("$user`:$password"))
   $PQ_HEADERS = @{Authorization = "Basic $encoded"}
-  Set-Variable -Name "PQ_HEADERS" -Value @{Authorization = "Basic $encoded"} -Scope "Global"
+  Set-Variable -Name "PQ_HEADERS" -Value @{Authorization = "Basic $encoded"; "Content-Language" = "en"} -Scope "Global"
 }
 
 function New-QuickrPlace {
@@ -122,8 +122,8 @@ function New-QuickrDocument {
     
   )
   $header = @{Slug = $name}
-  $url = "$PQ_BASE$($parent.url)"
-  (Invoke-WebRequest -Uri $url -Method Post -Body $content -ContentType "application/atom+xml" -Headers ($PQ_HEADERS + $header)).StatusCode
+  $url = "$PQ_BASE/$($parent.url)"
+  (Invoke-WebRequest -Uri $url -Method Post -Body $content -ContentType "text/plain" -Headers ($PQ_HEADERS + $header)).StatusCode
 }
 
 export-modulemember -function Set-Quickr
