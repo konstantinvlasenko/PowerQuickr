@@ -126,9 +126,59 @@ function New-QuickrDocument {
   (Invoke-WebRequest -Uri $url -Method Post -Body $content -ContentType "text/plain" -Headers ($PQ_HEADERS + $header)).StatusCode
 }
 
+function New-QuickrPage {
+  param(
+    [parameter(Mandatory = $true, ValueFromPipeline=$true)]
+    [hashtable] $parent,
+    [string] $name,
+    [string] $content
+    
+  )
+  $url = "$PQ_BASE/$($parent.url)?doctype=[@D30DF3123AEFAF358052567080016723D]"
+  $xml = "
+	<?xml version='1.0' encoding='utf-8'?>
+	<a:entry xmlns:a='http://www.w3.org/2005/Atom'>
+		<title type='text'>$name</title>
+		<a:label>$name</a:label>
+		<a:category scheme='tag:ibm.com,2006:td/type' term='page' label='page' />
+		<a:summary type='text'>$content</a:summary>
+		<a:content type='text'>
+			Created by PowerQuickr
+		</a:content>	
+	</a:entry>
+	"
+  $payload = [system.Text.Encoding]::UTF8.GetBytes($xml) 	
+  ([xml](Invoke-WebRequest -Uri $url -Method Post -Body $payload -ContentType "text/xml" -Headers $PQ_HEADERS)).entry.link[4].href
+}
+
+function New-QuickrPageVersion {
+  param(
+    [parameter(Mandatory = $true, ValueFromPipeline=$true)]
+    [string] $pageUrl,
+    [string] $name,
+    [string] $content
+    
+  )
+  $xml = "
+	<?xml version='1.0' encoding='utf-8'?>
+	<a:entry xmlns:a='http://www.w3.org/2005/Atom'>
+		<a:category scheme='tag:ibm.com,2006:td/type' term='version' label='version' />
+		<a:summary type='text'>$content</a:summary>
+		<a:content type='text'>
+			Created by PowerQuickr
+		</a:content>	
+	</a:entry>
+	"
+  $payload = [system.Text.Encoding]::UTF8.GetBytes($xml) 	
+  (Invoke-WebRequest -Uri $pageUrl -Method Post -Body $payload -ContentType "application/atom+xml" -Headers $PQ_HEADERS).StatusCode
+}
+
 export-modulemember -function Set-Quickr
 export-modulemember -function Get-QuickrPlace
 export-modulemember -function New-QuickrPlace
 export-modulemember -function New-QuickrRootFolder
 export-modulemember -function New-QuickrFolder
 export-modulemember -function New-QuickrDocument
+export-modulemember -function New-QuickrPage
+export-modulemember -function New-QuickrPageVersion
+
