@@ -210,6 +210,24 @@ function Update-Document {
   $proxy.updateDocument($document).error
 }
 
+function Update-DocumentDescription {
+  param(
+    [parameter(Mandatory = $true)]
+    $document,
+	[parameter(Mandatory = $true)]
+    [string] $content
+	
+  )
+  $proxy.lockDocument($null, $document.path)
+  $res = $proxy.createDraft($null, $document.path, $null)
+  $res.draft.label = $document.label
+  $res.draft.title = $document.title
+  $res.draft.description = $content
+  $res = $proxy.createDraft($null, $document.path, $res.draft)
+  $proxy.checkinDocument($document)
+}
+
+
 function New-QuickrDocumentVersion {
   param(
     [parameter(Mandatory = $true)]
@@ -231,4 +249,5 @@ export-modulemember -function New-QuickrDocumentVersion
 export-modulemember -function Lock-QuickrDocument
 export-modulemember -function Unlock-QuickrDocument
 export-modulemember -function Update-Document
+export-modulemember -function Update-DocumentDescription
 
