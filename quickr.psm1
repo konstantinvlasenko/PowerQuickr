@@ -217,7 +217,7 @@ function New-QuickrDocumentVersion {
     [string] $comments
     
   )
-  $proxy.createVersion($null,$document.path, $comments).error
+  $proxy.createVersion($null,$document.path, $comments)
 }
 
 export-modulemember -function Set-Quickr
