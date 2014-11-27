@@ -84,11 +84,29 @@ function New-QuickrPlace {
   }
 }
 
+function Login-QuickrPlace {
+  param(
+    [parameter(Mandatory = $true)]
+    [string] $place
+  )
+  $url = "$PQ_BASE/LotusQuickr/$place/Main.nsf`?Login"
+  Invoke-WebRequest $url -Method post -ContentType 'application/x-www-form-urlencoded' -Body "Username=$PQ_ADMIN&password=$PQ_ADMIN_PASSWORD" -SessionVariable PQ | OUT-NULL
+  $PQ.Cookies
+  
+}
+
 function Get-QuickrPlace {
   param(
     [parameter(Mandatory = $true)]
     [string] $place
   )
+  
+  $url = "$PQ_BASE/dm/services/ContentService?wsdl"
+  $global:proxy = New-WebServiceProxy -uri $url
+  $global:proxy.url = "$PQ_BASE/dm/services/DocumentService"
+  $global:proxy.CookieContainer = Login-QuickrPlace $place
+   
+  
   $url = "$PQ_BASE/dm/atom/library/%5B@P$place/@RMain.nsf%5D/feed"
   ([xml](Invoke-WebRequest -Uri $url -Headers $PQ_HEADERS).Content).feed.entry | Convert-EntriesToObject
 }
@@ -111,6 +129,36 @@ function New-QuickrFolder {
       ([xml](Invoke-WebRequest -Uri $url -Method Post -Body $body -ContentType "application/atom+xml" -Headers $PQ_HEADERS).Content).entry | Convert-EntryToHash
     }
   }
+}
+
+function Lock-QuickrDocument {
+  param(
+    [parameter(Mandatory = $true)]
+    [string] $place,
+	[parameter(Mandatory = $true)]
+    $page
+  )
+  $url = "$PQ_BASE/dm/services/ContentService?wsdl"
+  $proxy = New-WebServiceProxy -uri $url
+  $proxy.url = "$PQ_BASE/dm/services/DocumentService"
+  $proxy.CookieContainer = Login-QuickrPlace $place
+  $id = $page.id.split(':')[-1] 
+  $proxy.lockDocument($id, $null)
+}
+
+function Unlock-QuickrDocument {
+  param(
+    [parameter(Mandatory = $true)]
+    [string] $place,
+	[parameter(Mandatory = $true)]
+    $page
+  )
+  $url = "$PQ_BASE/dm/services/ContentService?wsdl"
+  $proxy = New-WebServiceProxy -uri $url
+  $proxy.url = "$PQ_BASE/dm/services/DocumentService"
+  $proxy.CookieContainer = Login-QuickrPlace $place
+  $id = $page.id.split(':')[-1] 
+  $proxy.unlockDocument($id, $null)
 }
 
 function New-QuickrDocument {
@@ -148,29 +196,28 @@ function New-QuickrPage {
 	</a:entry>
 	"
   $payload = [system.Text.Encoding]::UTF8.GetBytes($xml) 	
-  ([xml](Invoke-WebRequest -Uri $url -Method Post -Body $payload -ContentType "text/xml" -Headers $PQ_HEADERS)).entry.link[4].href
+  $entry = ([xml](Invoke-WebRequest -Uri $url -Method Post -Body $payload -ContentType "text/xml" -Headers $PQ_HEADERS)).entry
+  
+  $id = $entry.id.split(':')[-1] 
+  $proxy.getDocument($id,$null,$null,$null).document
 }
 
-function New-QuickrPageVersion {
+function Update-Document {
   param(
-    [parameter(Mandatory = $true, ValueFromPipeline=$true)]
-    [string] $pageUrl,
-    [string] $name,
-    [string] $content
+    [parameter(Mandatory = $true)]
+    $document
+  )
+  $proxy.updateDocument($document).error
+}
+
+function New-QuickrDocumentVersion {
+  param(
+    [parameter(Mandatory = $true)]
+    $document,
+    [string] $comments
     
   )
-  $xml = "
-	<?xml version='1.0' encoding='utf-8'?>
-	<a:entry xmlns:a='http://www.w3.org/2005/Atom'>
-		<a:category scheme='tag:ibm.com,2006:td/type' term='version' label='version' />
-		<a:summary type='text'>$content</a:summary>
-		<a:content type='text'>
-			Created by PowerQuickr
-		</a:content>	
-	</a:entry>
-	"
-  $payload = [system.Text.Encoding]::UTF8.GetBytes($xml) 	
-  (Invoke-WebRequest -Uri $pageUrl -Method Post -Body $payload -ContentType "application/atom+xml" -Headers $PQ_HEADERS).StatusCode
+  $proxy.createVersion($null,$document.path, $comments).error
 }
 
 export-modulemember -function Set-Quickr
@@ -180,5 +227,8 @@ export-modulemember -function New-QuickrRootFolder
 export-modulemember -function New-QuickrFolder
 export-modulemember -function New-QuickrDocument
 export-modulemember -function New-QuickrPage
-export-modulemember -function New-QuickrPageVersion
+export-modulemember -function New-QuickrDocumentVersion
+export-modulemember -function Lock-QuickrDocument
+export-modulemember -function Unlock-QuickrDocument
+export-modulemember -function Update-Document
 
