@@ -1,0 +1,4 @@
+<entry xml:base="$url" xmlns="http://www.w3.org/2005/Atom">
+  <category term="room" scheme="tag:ibm.com,2006:td/type" label="room"/>
+  <title type="text">$name$</title>
+</entry>
