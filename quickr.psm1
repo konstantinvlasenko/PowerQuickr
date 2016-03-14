@@ -108,7 +108,9 @@ function Get-QuickrPlace {
    
   
   $url = "$PQ_BASE/dm/atom/library/%5B@P$place/@RMain.nsf%5D/feed"
-  ([xml](Invoke-WebRequest -Uri $url -Headers $PQ_HEADERS).Content).feed.entry | Convert-EntriesToObject
+  $info = ([xml](Invoke-WebRequest -Uri $url -Headers $PQ_HEADERS).Content).feed.entry | Convert-EntriesToObject
+  $info | Add-Member -MemberType NoteProperty -Name Base -Value @{url="dm/atom/library/%5B@P$place/@RMain.nsf%5D/feed"}
+  return $info
 }
 
 function New-QuickrFolder {
@@ -120,6 +122,26 @@ function New-QuickrFolder {
   )
   BEGIN {
     $template = [string](Get-Content "$PQ_DIR\xml\create_folder.xml")
+  }
+  PROCESS {
+    foreach($p in $parents) {
+      $url = "$PQ_BASE/$($p.url)"
+	  $url | out-default
+      $body = Merge-Tokens $template @{ base = $url; name = $name}
+      ([xml](Invoke-WebRequest -Uri $url -Method Post -Body $body -ContentType "application/atom+xml" -Headers $PQ_HEADERS).Content).entry | Convert-EntryToHash
+    }
+  }
+}
+
+function New-QuickrRoom {
+  param(
+    [parameter(Mandatory = $true)]
+    [string] $name,
+    [parameter(Mandatory = $true, ValueFromPipeline=$true)]
+    [hashtable[]] $parents
+  )
+  BEGIN {
+    $template = [string](Get-Content "$PQ_DIR\xml\create_room.xml")
   }
   PROCESS {
     foreach($p in $parents) {
@@ -243,6 +265,7 @@ export-modulemember -function Get-QuickrPlace
 export-modulemember -function New-QuickrPlace
 export-modulemember -function New-QuickrRootFolder
 export-modulemember -function New-QuickrFolder
+export-modulemember -function New-QuickrRoom
 export-modulemember -function New-QuickrDocument
 export-modulemember -function New-QuickrPage
 export-modulemember -function New-QuickrDocumentVersion
