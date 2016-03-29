@@ -196,13 +196,34 @@ function New-QuickrDocument {
   (Invoke-WebRequest -Uri $url -Method Post -Body $content -ContentType "text/plain" -Headers ($PQ_HEADERS + $header)).StatusCode
 }
 
+function Add-Acls ($libraryid, $documentid, $persons)
+{
+  echo $parent
+  $url = "$PQ_BASE/$libraryid/document/$documentid/entry?replace=true"
+  $bodyheader = "
+	<entry xmlns='http://www.w3.org/2005/Atom' xml:lang='en'>
+	<td:acls>
+		<td:reader>
+  "
+  foreach($person in $persons)
+  {
+	$bodyreader += $bodyreader + "<td:person><uri>$person</uri></td:person>"
+  }
+  $bodyfooter = "
+		</td:reader>
+	</td:acls>
+	</entry>
+  "
+  Invoke-WebRequest -Uri $url -Method Post -Body $bodyheader+$bodyreader+$bodyfooter -ContentType "application/atom+xml" -Headers $PQ_HEADERS
+}
+
 function New-QuickrPage {
   param(
     [parameter(Mandatory = $true, ValueFromPipeline=$true)]
     [hashtable] $parent,
     [string] $name,
-    [string] $content
-    
+    [string] $content,
+    [string] $persons
   )
   $url = "$PQ_BASE/$($parent.url)?doctype=[@D30DF3123AEFAF358052567080016723D]"
   $xml = "
@@ -220,7 +241,13 @@ function New-QuickrPage {
   $payload = [system.Text.Encoding]::UTF8.GetBytes($xml) 	
   $entry = ([xml](Invoke-WebRequest -Uri $url -Method Post -Body $payload -ContentType "text/xml" -Headers $PQ_HEADERS)).entry
   
-  $id = $entry.id.split(':')[-1] 
+  $id = $entry.id.split(':')[-1]
+  $libraryid = $parent.url.SubString(0, $parent.url.LastIndexOf('feed'))
+
+  if([string]::IsNullOrEmpty($persons) -eq $false){
+	Add-Acls $libraryid $id $persons.split(';')
+  }
+
   $proxy.getDocument($id,$null,$null,$null).document
 }
 
@@ -260,6 +287,29 @@ function New-QuickrDocumentVersion {
   $proxy.createVersion($null,$document.path, $comments)
 }
 
+function Add-QuickrMember{
+    param(
+    [parameter(Mandatory = $true)]
+    [string] $place,
+    [string] $name,
+    [string] $isPerson
+  )
+  $url = "$PQ_BASE/dm/atom/library/[@P$place/@Rmain.nsf]/action?action=member"
+  $body = "<addMember dnName='$name' password='Qwerty123' accessLevel='Author' isPerson='$isPerson' isLocal='1' firstName='$name'/>"
+  Invoke-WebRequest $url -Method post -ContentType 'application/x-www-form-urlencodedd' -Body $body -Headers $PQ_HEADERS
+}
+
+function Remove-QuickrMember{
+    param(
+    [parameter(Mandatory = $true)]
+    [string] $place,
+    [string] $name
+  )
+  $url = "$PQ_BASE/dm/atom/library/[@P$place/@Rmain.nsf]/action?action=member"
+  $body = "<deleteMember dnName='$name' isPerson='true' isLocal='true'/>"
+  Invoke-WebRequest $url -Method post -ContentType 'application/x-www-form-urlencodedd' -Body $body -Headers $PQ_HEADERS
+}
+
 export-modulemember -function Set-Quickr
 export-modulemember -function Get-QuickrPlace
 export-modulemember -function New-QuickrPlace
@@ -273,4 +323,6 @@ export-modulemember -function Lock-QuickrDocument
 export-modulemember -function Unlock-QuickrDocument
 export-modulemember -function Update-Document
 export-modulemember -function Update-DocumentDescription
+export-modulemember -function Add-QuickrMember
+export-modulemember -function Remove-QuickrMember
 
